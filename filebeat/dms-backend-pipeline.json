@@ -1,0 +1,44 @@
+{
+  "description": "Custom ingest pipeline for parsing the log",
+  "processors": [
+    {
+      "grok": {
+        "field": "message",
+        "patterns": [
+          "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:log_level} \\[Process:%{INT:process_id}/Thread:%{INT:thread_id}] %{DATA:logger}:\\d+ - %{QS:request_method} %{INT:http_status_code} %{INT:response_size}"
+        ]
+      }
+    },
+    {
+      "date": {
+        "field": "timestamp",
+        "target_field": "@timestamp",
+        "formats": ["yyyy-MM-dd HH:mm:ss"]
+      }
+    },
+    {
+      "convert": {
+        "field": "process_id",
+        "type": "integer"
+      }
+    },
+    {
+      "convert": {
+        "field": "thread_id",
+        "type": "integer"
+      }
+    },
+    {
+      "convert": {
+        "field": "http_status_code",
+        "type": "integer"
+      }
+    },
+    {
+      "convert": {
+        "field": "response_size",
+        "type": "integer"
+      }
+    }
+  ]
+}
