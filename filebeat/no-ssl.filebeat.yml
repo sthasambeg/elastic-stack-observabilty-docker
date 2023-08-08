@@ -21,7 +21,8 @@ output.elasticsearch:
   hosts: ${ELASTIC_HOSTS}
   username: ${ELASTIC_USER}
   password: ${ELASTIC_PASSWORD}
-
+  indices:
+    - index: "dms-%{+yyyy.MM.dd}"
 # output.logstash:
 #   host: ${LOGSTASH_HOSTS}
 

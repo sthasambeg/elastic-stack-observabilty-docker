@@ -2,3 +2,4 @@
 .envrc
 *ingest_data/
 collect_logs/
+*.log

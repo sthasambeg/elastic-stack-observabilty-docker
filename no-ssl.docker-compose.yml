@@ -1,8 +1,6 @@
 version: "3.8"
 
 volumes:
-  certs:
-    driver: local
   esdata01:
     driver: local
   kibanadata:
@@ -14,11 +12,32 @@ volumes:
 
 networks:
   default:
-    name: elastic
+    name: elastic-no-ssl
     external: false
 
 services:
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    user: "0"
+    command: >
+      bash -c '
+        if [ x${ELASTIC_PASSWORD} == x ]; then
+          echo "Set the ELASTIC_PASSWORD environment variable in the .env file";
+          exit 1;
+        elif [ x${KIBANA_PASSWORD} == x ]; then
+          echo "Set the KIBANA_PASSWORD environment variable in the .env file";
+          exit 1;
+        fi;
+        echo "Waiting for Elasticsearch availability";
+        until curl -s http://es01:9200 | grep -q "missing authentication credentials"; do sleep 20; done;
+        echo "Setting kibana_system password";
+        until curl -s -X POST -u "elastic:${ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://es01:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
+        echo "All done!";
+      '
+
   es01:
+    depends_on:
+      - setup
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     labels:
       co.elastic.logs/module: elasticsearch
@@ -35,10 +54,20 @@ services:
       - xpack.security.enabled=true
       - xpack.license.self_generated.type=${LICENSE}
     mem_limit: ${ES_MEM_LIMIT}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 120
 
   kibana:
     depends_on:
-      - es01
+      es01:
+        condition: service_healthy
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     labels:
       co.elastic.logs/module: kibana
@@ -48,20 +77,27 @@ services:
       - ${KIBANA_PORT}:5601
     environment:
       - SERVERNAME=kibana
-      - ELASTICSEARCH_HOSTS=https://es01:9200
+      - ELASTICSEARCH_HOSTS=http://es01:9200
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
     mem_limit: ${KB_MEM_LIMIT}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
+      interval: 10s
+      timeout: 10s
+      retries: 120
 
   metricbeat01:
     depends_on:
-      - es01
-      - kibana
+      es01:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
     image: docker.elastic.co/beats/metricbeat:${STACK_VERSION}
     user: root
     volumes:
       - metricbeatdata01:/usr/share/metricbeat/data
-      - "./metricbeat/ssl-free.metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro"
+      - "./metricbeat/no-ssl.metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "/sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro"
       - "/proc:/hostfs/proc:ro"
@@ -69,21 +105,22 @@ services:
     environment:
       - ELASTIC_USER=elastic
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-      - ELASTIC_HOSTS=https://es01:9200
+      - ELASTIC_HOSTS=http://es01:9200
       - KIBANA_HOSTS=http://kibana:5601
 
   filebeat01:
     depends_on:
-      - es01
+      es01:
+        condition: service_healthy
     image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
     user: root
     volumes:
       - filebeatdata01:/usr/share/filebeat/data
-      - "./filebeat/filebeat_ingest_data/:/usr/share/filebeat/ingest_data/"
-      - "./filebeat/ssl-free.filebeat.yml:/usr/share/filebeat/filebeat.yml:ro"
+      - "./logs:/usr/share/filebeat/ingest_data/"
+      - "./filebeat/no-ssl.filebeat.yml:/usr/share/filebeat/filebeat.yml:ro"
       - "./filebeat/dms-backend-pipeline.json:/usr/share/filebeat/dms-backend-pipeline.json"
     environment:
       - ELASTIC_USER=elastic
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-      - ELASTIC_HOSTS=https://es01:9200
+      - ELASTIC_HOSTS=http://es01:9200
       - KIBANA_HOSTS=http://kibana:5601

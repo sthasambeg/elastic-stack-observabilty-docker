@@ -11,7 +11,10 @@ restart:
 	docker compose -p elastic_stack down
 	docker -D compose -p elastic_stack -f docker-compose.yml up --build -d
 
-dev-ssl-free:
-	docker -D compose -p ssl-free-elastic_stack -f ssl-free.docker-compose.yml up --build -d
-stop-ssl-free:
-	docker compose -p ssl-free-elastic_stack down
+dev-no-ssl:
+	docker -D compose -p no-ssl-elastic_stack -f no-ssl.docker-compose.yml up --build -d
+stop-no-ssl:
+	docker compose -p no-ssl-elastic_stack down
+restart-no-ssl:
+	docker compose -p no-ssl-elastic_stack down
+	docker -D compose -p no-ssl-elastic_stack -f no-ssl.docker-compose.yml up --build -d
