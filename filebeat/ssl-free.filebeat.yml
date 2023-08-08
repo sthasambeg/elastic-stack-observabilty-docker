@@ -4,10 +4,10 @@ filebeat.inputs:
     paths:
       - ingest_data/*.log
 
-# filebeat.autodiscover:
-#   providers:
-#     - type: docker
-#       hints.enabled: true
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
 
 processors:
   - add_docker_metadata: ~
@@ -21,11 +21,7 @@ output.elasticsearch:
   hosts: ${ELASTIC_HOSTS}
   username: ${ELASTIC_USER}
   password: ${ELASTIC_PASSWORD}
-  ssl.enabled: true
-  ssl.certificate_authorities: "certs/ca/ca.crt"
-  # pipeline: "dms-backend-pipeline"
-  indices:
-    - index: "dms-%{+yyyy.MM.dd}"
+
 # output.logstash:
 #   host: ${LOGSTASH_HOSTS}
 

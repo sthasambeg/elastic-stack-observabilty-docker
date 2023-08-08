@@ -1,3 +1,4 @@
+PUT /_ingest/pipeline/dms-backend-pipeline
 {
   "description": "Custom ingest pipeline for parsing the log",
   "processors": [
