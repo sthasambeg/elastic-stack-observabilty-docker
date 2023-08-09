@@ -1,8 +1,13 @@
+set-permissions:
+	chmod go-w filebeat/filebeat.yml
+
 dev:
+	${MAKE} set-permissions
 	docker compose -p mock -f logging.docker-compose.yml up --build -d
 stop:
 	docker compose -p mock down
 restart:
+	${MAKE} set-permissions
 	docker compose -p mock down
 	docker compose -p mock -f logging.docker-compose.yml up --build -d
 
