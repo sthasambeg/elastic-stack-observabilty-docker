@@ -1,5 +1,0 @@
-2023-08-02 00:41:12 INFO [Process:23/Thread:140532750218944] log_message$$django.server:187 - "OPTIONS /employee/1/ HTTP/1.0" 200 0
-
-2023-08-02 02:53:42 WARNING [Process:23/Thread:140532654528192] log_response$$django.request:241 - Bad Request: /authenticate/token/refresh/
-
-2023-08-02 02:54:21 ERROR [Process:23/Thread:140532654528192] get_vehicle_picture_link$$motordesk.bridge:57 - Unable to establish a connection to MOTORDESK MODULE
